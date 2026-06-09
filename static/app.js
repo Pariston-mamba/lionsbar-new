@@ -130,18 +130,20 @@ function ensureAudio() {
 
 function blip(freq, start, dur, type = "sine", gain = 0.08) {
   if (!audioCtx) return;
-  const osc = audioCtx.createOscillator();
-  const env = audioCtx.createGain();
-  osc.type = type;
-  osc.frequency.value = freq;
-  osc.connect(env);
-  env.connect(audioCtx.destination);
-  const t = audioCtx.currentTime + start;
-  env.gain.setValueAtTime(0.0001, t);
-  env.gain.linearRampToValueAtTime(gain, t + 0.012);
-  env.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  osc.start(t);
-  osc.stop(t + dur + 0.03);
+  try {
+    const osc = audioCtx.createOscillator();
+    const env = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    osc.connect(env);
+    env.connect(audioCtx.destination);
+    const t = audioCtx.currentTime + start;
+    env.gain.setValueAtTime(0.0001, t);
+    env.gain.linearRampToValueAtTime(gain, t + 0.012);
+    env.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.start(t);
+    osc.stop(t + dur + 0.03);
+  } catch (err) {}
 }
 
 function playSound(kind) {
@@ -308,12 +310,15 @@ function showReveal(ev, state) {
   els.revealOverlay.append(box);
   els.revealOverlay.classList.remove("hidden");
 
-  playSound(ev.isLying ? "lie" : "honest");
-  if (state?.you?.id && ev.loserId === state.you.id) buzz([80, 60, 160]);
-  else buzz(40);
-
+  // schedule auto-close FIRST so nothing below can leave the overlay stuck open
   window.clearTimeout(showReveal.timer);
   showReveal.timer = window.setTimeout(hideReveal, 2800);
+
+  try {
+    playSound(ev.isLying ? "lie" : "honest");
+    if (state?.you?.id && ev.loserId === state.you.id) buzz([80, 60, 160]);
+    else buzz(40);
+  } catch (err) {}
 }
 
 function hideReveal() {
